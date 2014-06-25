@@ -41,7 +41,7 @@ exports.listen = (server) ->
 Client-side
 
 ```jade
-# index.jade
+<!-- index.jade -->
 doctype html
 html
   head
@@ -49,21 +49,18 @@ html
     title coffeechat
     meta(name='description', content='Have a chat and a coffee')
     link(href="//fonts.googleapis.com/css?family=Inconsolata:400,700" rel="stylesheet" type="text/css")
-    script(src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js")
-    script(src="//cdn.socket.io/socket.io-1.0.6.js")
-    script(src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.js")
-
-    != css('application')
-    != js('application')
+    link(href="/assets/stylesheets/application.css" rel="stylesheet" type="text/css"
 
   body
     #app
+    script(src="//cdn.socket.io/socket.io-1.0.6.js")
+    script(src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.js")
+    script(src="/assets/application.js")
 ```
 
 Coffeescript
 
 ```coffeescript
   # organize client side code using react :-)
-  # start the client-side socket.io on document
-  # ready perhaps?
+  # start the client-side socket.io on document ready perhaps?
 ```
