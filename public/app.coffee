@@ -3,21 +3,24 @@ $ ->
   # socket.io magic
   socket = io()
   connected = false
+  username = null
+
+  # DOM elements
+  $loginPage = $('.login')
+  $chatPage = $('.chat')
   $messages = $('.messages')
   $username = $('.username-input')
   $messageInput = $('.new-message')
   $input = $username.focus()
-  username = null
 
   # entry point
   addUser = ->
     # username = cleanInput $username.val().trim()
     username = $username.val().trim()
     if username
-      # $loginPage.fadeOut()
-      # $chatPage.show()
-      # no more need to login
-      # $loginPage.off('click')
+      $loginPage.fadeOut()
+      $chatPage.show()
+      $loginPage.off('click')
       $input = $messageInput.focus()
 
       socket.emit 'add user', username
@@ -69,7 +72,7 @@ $ ->
 
   socket.on 'user joined', (data) ->
     message = "#{data.username} has joined the chat.
-              There are now #{data.numUsers} connnected."
+              Total user count: #{data.numUsers}."
     addSystemMessage(message)
 
   socket.on 'new message', (data) ->
