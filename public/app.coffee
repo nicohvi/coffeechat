@@ -50,6 +50,12 @@ $ ->
   $chatPage.on 'click', (event) ->
     $input.focus()
 
+  $input.on 'input', ->
+    return unless connected
+    updateTyping()
+
+
+
   addSystemMessage = (message, options) ->
     $messageBodyEl = $('<span class="message-body" />')
       .text(message)
@@ -62,6 +68,8 @@ $ ->
     if options.prepend then $messages.prepend($el) else $messages.append($el)
     # scroll to the newest message
     $messages[0].scrollTop = $messages[0].scrollHeight
+
+  # socket.io listeners
 
   socket.on 'used name', ->
     username = null
