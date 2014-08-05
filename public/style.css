@@ -79,6 +79,13 @@ ul {
   letter-spacing: 3px;
 }
 
+.login.page .notice {
+  padding: 30px;
+  color: #fff;
+  background: red;
+  font-weight: 600;
+}
+
 .login.page h3, .login.page .username-input {
   color: #fff;
   font-weight: 100;

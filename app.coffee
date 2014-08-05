@@ -21,7 +21,7 @@ usernames = {}
 numUsers = 0
 
 io.on 'connection', (socket) ->
-  addedUser = false
+  guest = true
 
   socket.on 'new message', (message) ->
     socket.broadcast.emit 'new message',
@@ -29,11 +29,13 @@ io.on 'connection', (socket) ->
       message: message
 
   socket.on 'add user', (username) ->
+    return socket.emit 'used name' if usernames[username]?
+
     socket.username = username
     usernames[username] = username
     ++numUsers
 
-    addedUser = true
+    guest = false
     socket.emit 'login',
       username: username
       numUsers: numUsers
@@ -52,10 +54,10 @@ io.on 'connection', (socket) ->
       username: socket.username
 
   socket.on 'disconnect', ->
-    if addedUser
-      delete usernames[socket.user]
+    unless guest
+      delete usernames[socket.username]
       --numUsers
 
-    socket.broadcast.emit 'user left',
-      username: socket.username
-      numUsers: numUsers
+      socket.broadcast.emit 'user left',
+        username: socket.username
+        numUsers: numUsers
