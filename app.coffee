@@ -7,16 +7,8 @@ port = 3000
 server.listen port, ->
   console.log "server listening on port #{port}"
 
-
 app.use express.static("#{__dirname}/public")
-# chatServer.listen(server)
 
-# app.get '/', (res, req) ->
-  # res.render 'index.jade'
-
-  # do all the chat things :-)
-
-  # piggyback on the http server
 usernames = {}
 numUsers = 0
 
