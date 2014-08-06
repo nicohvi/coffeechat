@@ -2,7 +2,7 @@ $ ->
 
   # constants
   TYPING_TIMER = 1000 # ms
-  FADE_TIMER = 2000 # ms
+  FADE_TIME = 150 # ms
   COLORS = [
     '#e21400', '#91580f', '#f8a700', '#f78b00',
     '#58dc00', '#287b00', '#a8f07a', '#4ae8c4',
@@ -28,19 +28,75 @@ $ ->
     username = cleanInput $username.val().trim()
     socket.emit('add user', username) if username
 
+  connect = ->
+    connected = true
+    $loginPage.fadeOut();
+    $chatPage.show();
+    $loginPage.off('click');
+    $input = $messageInput.focus();
+
   sendMessage = ->
     message = cleanInput $input.val().trim()
 
     if message && connected
       $input.val('')
-      addChatMessage message, { username: username }
-      typing = false
+      addChatMessage { username: username, message: message }
       socket.emit 'new message', message
 
   cleanInput = (input) ->
     $('<div/>').text(input).text()
 
+  addParticipantsMessage = (data) ->
+    if data.numUsers == 1 then message = 'There\'s 1 participant.'
+    else message = "There are #{data.numUsers} participants."
+    log(message)
+
+  log = (message, options) ->
+    $el = $('<li class="log" />').text(message)
+    addMessageElement($el, options)
+
+  addChatMessage = (data, options) ->
+    options = {} unless options?
+
+    if getTypingMessages(data).length > 0
+      options.fade = false
+
+    $userEl = $('<span class="username" />')
+      .text(data.username)
+      .css('color', getUsernameColor(data.username))
+    $messageBodyEl = $('<span class="message-body" />')
+      .text(data.message)
+
+    if data.typing then typingClass = 'typing' else typingClass = ''
+
+    $messageEl = $('<li class="message" />')
+      .data('username', data.username)
+      .addClass(typingClass)
+      .append($userEl, $messageBodyEl)
+
+    addMessageElement($messageEl, options)
+
+  addTypingMessage = (data) ->
+    data.typing = true
+    data.message = ' is typing. If you write something, he might stop.'
+    addChatMessage(data)
+
+  removeTypingMessage = (data) ->
+    getTypingMessages(data).fadeOut -> $(@).remove()
+
+  addMessageElement = ($el, options) ->
+    options = {} unless options?
+    options.fade = true unless options.fade?
+    options.prepend = false unless options.prepend?
+
+    $el.hide().fadeIn(FADE_TIME) if options.fade
+    if options.prepend then $messages.prepend($el) else $messages.append($el)
+
+    $messages[0].scrollTop = $messages[0].scrollHeight
+
   updateTyping = ->
+    return unless connected
+
     unless typing
       typing = true
       socket.emit 'typing'
@@ -58,51 +114,28 @@ $ ->
       ,
       TYPING_TIMER)
 
-  # adding messages to $messages
-  addChatMessage = (message, options) ->
-    options = {} unless options?
-    $userEl = $('<span class="username" />')
-      .text(options.username)
-    $messageBodyEl = $('<span class="message-body" />')
-      .text(message)
-    $messageEl = $('<li class="message" />')
-      .data('username', options.username)
-      .append($userEl, $messageBodyEl)
-    addMessageElement($messageEl, options)
+  getTypingMessages = (data) ->
+    $('.typing.message').filter ->
+      $(@).data('username') == data.username
 
-  addSystemMessage = (message, options) ->
-    options = {} unless options?
-    if options.typing? then typingClass = "typing" else typingClass = ""
-    $messageBodyEl = $('<span class="message-body" />')
-      .text(message)
-    $messageEl = $("<li class=\"message system #{typingClass}\" />")
-      .append($messageBodyEl)
-    $messageEl.data('username', options.username) if options.username?
-    addMessageElement($messageEl, options)
+  getUsernameColor = (username) ->
+    hash = 7
+    for letter, i in username
+      hash = username.charCodeAt(i) + (hash << 5) - hash
+    index = Math.abs hash % COLORS.length
+    COLORS[index]
 
-  addMessageElement = ($el, options) ->
-    options = {} unless options?
-    removeTypingMessages(options.username) if options.username?
-    if options.prepend? then $messages.prepend($el) else $messages.append($el)
-    # scroll to the newest message
-    if options.fade?
-      setTimeout(
-        ->
-          $el.remove()
-        ,
-        FADE_TIMER)
-    $messages[0].scrollTop = $messages[0].scrollHeight
+  # event listeners
 
-  removeTypingMessages = (username) ->
-    $typingMessages = $('.system.typing').filter((i) ->
-      $(@).data('username') == username
-    )
-    $typingMessages.remove()
-
-  # event handlers
   $(@).keydown (event) ->
+    $input.focus()
     if event.which == 13
-      if username? then sendMessage() else addUser()
+      if connected
+        sendMessage()
+        typing = false
+        socket.emit 'stop typing'
+      else
+        addUser()
 
   $chatPage.on 'click', (event) ->
     $input.focus()
@@ -111,54 +144,37 @@ $ ->
     $input.focus()
 
   $messageInput.on 'input', ->
-    return unless connected
     updateTyping()
-
 
   # socket.io listeners
 
   socket.on 'used name', ->
-    username = null
-    error = "Username already in use, bruv."
     $errorEl = $('<div class="notice"/>')
-      .text(error)
+      .text("Username already in use, bruv.")
     $('.form').prepend($errorEl)
-    $input.addClass('error')
 
   socket.on 'login', (data) ->
-    connected = true
-    $loginPage.fadeOut()
-    $chatPage.show()
-    $loginPage.off('click')
-    $input = $messageInput.focus()
+    connect()
     message = "Welcome to Coffeechat, #{data.username}."
-    addSystemMessage message, { prepend: true }
+
+    log message, { prepend: true }
+    addParticipantsMessage(data)
 
   socket.on 'user joined', (data) ->
-    return unless connected
-    message = "#{data.username} has joined the chat.
-              Total user count: #{data.numUsers}."
-    addSystemMessage(message)
+    return if data.username == username
+    log("#{data.username} has joined the chat.")
+    addParticipantsMessage(data)
 
   socket.on 'new message', (data) ->
-    return unless connected
-    message = data.message
-    addChatMessage message, { username: data.username }
+    addChatMessage(data)
 
   socket.on 'typing', (data) ->
-    return unless connected ||  data.username == username
-    message = "#{data.username} is typing, if you start typing as well
-              he might stop."
-    addSystemMessage message, { username: data.username, typing: true }
+    addTypingMessage(data)
 
   socket.on 'stop typing', (data) ->
-    return unless connected ||  data.username == username
-    message = "#{data.username} has stopped typing, he probably regrets what
-              he wanted to say - awkward."
-    addSystemMessage message, { fade: true, typing: true, username: data.username }
+    removeTypingMessage(data)
 
   socket.on 'user left', (data) ->
-    return unless connected
-    message = "#{data.username} has made like Elvis and left the building.
-    Total user count: #{data.numUsers}."
-    addSystemMessage message
+    log("#{data.username} has made like Elvis.")
+    addParticipantsMessage(data)
+    removeChatTyping(data)
