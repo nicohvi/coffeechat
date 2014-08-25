@@ -1,2 +1,4 @@
 --require should
+--require util
 --compilers coffee:coffee-script/register
+-R spec
