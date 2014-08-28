@@ -1,7 +1,7 @@
 $ ->
 
   # constants
-  TYPING_TIMER = 1000 # ms
+  TYPING_TIMER = 400 # ms
   FADE_TIME = 150 # ms
   COLORS = [
     '#e21400', '#91580f', '#f8a700', '#f78b00',
@@ -9,82 +9,93 @@ $ ->
     '#3b88eb', '#3824aa', '#a700ff', '#d300e7'
   ]
 
-  # socket attributes
-  connected = false
+  $window = $(window)
+  $usernameInput = $('.usernameInput')
+  $messages = $('.messages')
+  $inputMessage = $('.inputMessage')
+
+  $loginPage = $('.login.page')
+  $chatPage = $('.chat.page')
+
   username = null
-  socket = io()
-  typing = false
   lastTypingTime = null
 
-  # DOM elements
-  $loginPage = $('.login')
-  $chatPage = $('.chat')
-  $messages = $('.messages')
-  $username = $('.username-input')
-  $messageInput = $('.new-message')
-  $input = $username.focus()
+  connected = false
+  typing = false
+  $currentInput = $usernameInput.focus()
 
-  addUser = ->
-    username = cleanInput $username.val().trim()
-    socket.emit('add user', username) if username
-
-  connect = ->
-    connected = true
-    $loginPage.fadeOut();
-    $chatPage.show();
-    $loginPage.off('click');
-    $input = $messageInput.focus();
-
-  sendMessage = ->
-    message = cleanInput $input.val().trim()
-
-    if message && connected
-      $input.val('')
-      addChatMessage { username: username, message: message }
-      socket.emit 'new message', message
-
-  cleanInput = (input) ->
-    $('<div/>').text(input).text()
+  socket = io()
 
   addParticipantsMessage = (data) ->
-    if data.numUsers == 1 then message = 'There\'s 1 participant.'
-    else message = "There are #{data.numUsers} participants."
+    message = ''
+    if data.numUsers == 1
+      message += "there's 1 participant"
+    else
+      message += "there are #{data.numUsers} participants."
     log(message)
 
+  setUsername = ->
+    username = cleanInput($usernameInput.val().trim())
+
+    if(username)
+      $loginPage.fadeOut()
+      $chatPage.show()
+      $loginPage.off('click')
+      $currentInput = $inputMessage.focus()
+
+      socket.emit 'add user', username
+
+  sendMessage = ->
+    message = $inputMessage.val()
+    message = cleanInput(message)
+
+    if message && connected
+      $inputMessage.val('')
+      addChatMessage
+        username: username
+        message: message
+
+    socket.emit 'new message', message
+
   log = (message, options) ->
-    $el = $('<li class="log" />').text(message)
+    $el = $('<li>').addClass('log').text(message)
     addMessageElement($el, options)
 
   addChatMessage = (data, options) ->
-    options = {} unless options?
-
-    if getTypingMessages(data).length > 0
+    $typingMessages = getTypingMessages(data)
+    options = { } unless options?
+    if $typingMessages.length != 0
       options.fade = false
+      $typingMessages.remove()
 
-    $userEl = $('<span class="username" />')
-      .text(data.username)
-      .css('color', getUsernameColor(data.username))
-    $messageBodyEl = $('<span class="message-body" />')
-      .text(data.message)
+    $usernameSpan = $('<span>')
+            .addClass('username')
+            .text(data.username)
+            .css('color', getUsernameColor(data.username))
 
-    if data.typing then typingClass = 'typing' else typingClass = ''
+    $messageBodySpan = $('<span>').addClass('messageBody').text(data.message)
+    if data.typing? then typingClass = 'typing' else typingClass = ''
+    console.log typingClass
+    $messageLi = $('<li>')
+                .addClass("message #{typingClass}")
+                .data('username', data.username)
+                .append($usernameSpan, $messageBodySpan)
 
-    $messageEl = $('<li class="message" />')
-      .data('username', data.username)
-      .addClass(typingClass)
-      .append($userEl, $messageBodyEl)
+    addMessageElement($messageLi, options)
 
-    addMessageElement($messageEl, options)
-
-  addTypingMessage = (data) ->
+  addChatTyping = (data) ->
     data.typing = true
-    data.message = ' is typing. If you write something, he might stop.'
+    data.message = 'is typing'
     addChatMessage(data)
 
-  removeTypingMessage = (data) ->
-    getTypingMessages(data).fadeOut -> $(@).remove()
+  removeChatTyping = (data) ->
 
-  addMessageElement = ($el, options) ->
+    getTypingMessages(data).fadeOut(-> $(@).remove())
+
+  addMessageElement = (el, options) ->
+    $el = $(el)
+
+    # default options
     options = {} unless options?
     options.fade = true unless options.fade?
     options.prepend = false unless options.prepend?
@@ -94,87 +105,81 @@ $ ->
 
     $messages[0].scrollTop = $messages[0].scrollHeight
 
+  # screw markup
+  cleanInput = (input) ->
+    $('<div>').text(input).text()
+
   updateTyping = ->
-    return unless connected
+    if connected
+      if !typing
+        typing = true
+        socket.emit 'typing'
+      lastTypingTime = (new Date()).getTime()
 
-    unless typing
-      typing = true
-      socket.emit 'typing'
-
-    # find out if the user has stopped typing
-    lastTypingTime = new Date().getTime()
-
-    setTimeout(
-      ->
-        now = new Date().getTime()
-        offset = now - lastTypingTime
-        if offset >= TYPING_TIMER && typing
+      callback = ->
+        typingTimer = (new Date()).getTime()
+        timeDiff = typingTimer - lastTypingTime
+        if timeDiff >= TYPING_TIMER && typing
           socket.emit 'stop typing'
           typing = false
-      ,
-      TYPING_TIMER)
+
+      setTimeout(callback, TYPING_TIMER)
 
   getTypingMessages = (data) ->
-    $('.typing.message').filter ->
-      $(@).data('username') == data.username
+    $('.typing.message').filter (i) ->
+      $(this).data('username') == data.username
 
   getUsernameColor = (username) ->
     hash = 7
+
     for letter, i in username
-      hash = username.charCodeAt(i) + (hash << 5) - hash
-    index = Math.abs hash % COLORS.length
+      hash = username.charCodeAt(i) + ( hash << 5) - hash
+
+    index = Math.abs(hash % COLORS.length)
     COLORS[index]
 
-  # event listeners
+  $window.on 'keydown', (event) ->
 
-  $(@).keydown (event) ->
-    $input.focus()
+    if event.ctrlKey || event.metaKey || event.altKey
+      $currentInput.focus()
+
     if event.which == 13
-      if connected
+      if(username)
         sendMessage()
-        typing = false
         socket.emit 'stop typing'
+        typing = false
       else
-        addUser()
+        setUsername()
 
-  $chatPage.on 'click', (event) ->
-    $input.focus()
-
-  $loginPage.on 'click', (event) ->
-    $input.focus()
-
-  $messageInput.on 'input', ->
+  $inputMessage.on 'input', ->
     updateTyping()
 
-  # socket.io listeners
+  $loginPage.on 'click', ->
+    $currentInput.focus()
 
-  socket.on 'used name', ->
-    $errorEl = $('<div class="notice"/>')
-      .text("Username already in use, bruv.")
-    $('.form').prepend($errorEl)
+  $inputMessage.on 'click', ->
+    $inputMessage.focus()
 
   socket.on 'login', (data) ->
-    connect()
-    message = "Welcome to Coffeechat, #{data.username}."
-
+    connected = true
+    message = 'Welcome to Coffeechat! '
     log message, { prepend: true }
-    addParticipantsMessage(data)
-
-  socket.on 'user joined', (data) ->
-    return if data.username == username
-    log("#{data.username} has joined the chat.")
     addParticipantsMessage(data)
 
   socket.on 'new message', (data) ->
     addChatMessage(data)
 
-  socket.on 'typing', (data) ->
-    addTypingMessage(data)
-
-  socket.on 'stop typing', (data) ->
-    removeTypingMessage(data)
+  socket.on 'user joined', (data) ->
+    log "#{data.username} joined"
+    addParticipantsMessage(data)
 
   socket.on 'user left', (data) ->
-    log("#{data.username} has made like Elvis.")
+    log "#{data.username} left"
     addParticipantsMessage(data)
-    removeTypingMessage(data)
+    removeChatTyping(data)
+
+  socket.on 'typing', (data) ->
+    addChatTyping(data)
+
+  socket.on 'stop typing', (data) ->
+    removeChatTyping(data)
