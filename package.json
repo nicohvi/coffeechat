@@ -14,5 +14,9 @@
     "mocha": "1.21.4",
     "should": "4.0.4",
     "socket.io-client": "^1.0.6"
+  },
+  "enigines": {
+   "node": "0.10.x",
+   "npm": "1.2.x"
   }
 }
