@@ -2,13 +2,14 @@
   "name": "coffeechat",
   "version": "0.0.0",
   "description": "A lovely example of magic. Also coffeescript.",
-  "main": "app.coffee",
+  "main": "src/app.coffee",
   "author": "Nicolay Hvidsten",
   "private": true,
   "license": "MIT",
   "dependencies": {
     "express": "3.4.8",
-    "socket.io": "1.0.6"
+    "socket.io": "1.0.6",
+    "coffeescript": "1.8.0"
   },
   "devDependencies": {
     "mocha": "1.21.4",
