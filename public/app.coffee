@@ -1,190 +1,57 @@
-$ ->
+class App
 
-  # constants
-  TYPING_TIMER = 400 # ms
-  FADE_TIME = 150 # ms
-  COLORS = [
-    '#e21400', '#91580f', '#f8a700', '#f78b00',
-    '#58dc00', '#287b00', '#a8f07a', '#4ae8c4',
-    '#3b88eb', '#3824aa', '#a700ff', '#d300e7'
-  ]
+  constructor: ->
+    @loginPage = new LoginPage($('.login.page'))
+    @socket = io()
+    @chat = new Chat($('.chat.page'))
+    @window = $(window)
+    @initHandlers()
+    @initSocketbindings()
+    @initBindings()
 
-  $window = $(window)
-  $usernameInput = $('.usernameInput')
-  $messages = $('.messages')
-  $inputMessage = $('.inputMessage')
+  initHandlers: ->
 
-  $loginPage = $('.login.page')
-  $chatPage = $('.chat.page')
+    @loginPage.on 'username', (username) =>
+      @socket.emit 'add user', username
 
-  username = null
-  lastTypingTime = null
+    @chat.on 'new message', (message) =>
+      @socket.emit 'new message', message
 
-  connected = false
-  typing = false
-  $currentInput = $usernameInput.focus()
+    @chat.on 'typing', =>
+      @socket.emit 'typing'
 
-  socket = io()
+    @chat.on 'stop typing', =>
+      @socket.emit 'stop typing'
 
-  addParticipantsMessage = (data) ->
-    message = ''
-    if data.numUsers == 1
-      message += "there's 1 participant"
-    else
-      message += "there are #{data.numUsers} participants."
-    log(message)
+  initSocketbindings: ->
+    @socket.on 'name taken', =>
+      message = 'Name already taken, bro.'
+      @loginPage.handleError(message)
 
-  setUsername = ->
-    username = cleanInput($usernameInput.val().trim())
-    socket.emit 'add user', username if username.length > 0
+    @socket.on 'login', (data) =>
+      @loginPage.close()
+      @loginPage = null
+      @chat.trigger 'welcome', [data]
 
-  login = ->
-    $loginPage.fadeOut()
-    $chatPage.show()
-    $loginPage.off('click')
-    $currentInput = $inputMessage.focus()
+    @socket.on 'user joined', (data) =>
+      @chat.trigger 'user joined', [data]
 
-  sendMessage = ->
-    message = $inputMessage.val()
-    message = cleanInput(message)
+    @socket.on 'new message', (data) =>
+      @chat.trigger 'message', [data]
 
-    if message && connected
-      $inputMessage.val('')
-      addChatMessage
-        username: username
-        message: message
+    @socket.on 'user left', (data) =>
+      @chat.trigger 'user left', [data]
 
-    socket.emit 'new message', message
+    @socket.on 'typing', (data) =>
+      console.log "called"
+      @chat.trigger 'typing_message', [data.username]
 
-  log = (message, options) ->
-    $el = $('<li>').addClass('log').text(message)
-    addMessageElement($el, options)
+    @socket.on 'stop typing', (data) =>
+      @chat.trigger 'remove_typing_message', [data.username]
 
-  addChatMessage = (data, options) ->
-    $typingMessages = getTypingMessages(data)
-    options = { } unless options?
-    if $typingMessages.length != 0
-      options.fade = false
-      $typingMessages.remove()
+  initBindings: ->
+    @window.on 'keydown', (event) =>
+      if @loginPage? then target = @loginPage else target = @chat
+      target.trigger 'keydown', [event]
 
-    $usernameSpan = $('<span>')
-            .addClass('username')
-            .text(data.username)
-            .css('color', getUsernameColor(data.username))
-
-    $messageBodySpan = $('<span>').addClass('messageBody').text(data.message)
-    if data.typing? then typingClass = 'typing' else typingClass = ''
-    $messageLi = $('<li>')
-                .addClass("message #{typingClass}")
-                .data('username', data.username)
-                .append($usernameSpan, $messageBodySpan)
-
-    addMessageElement($messageLi, options)
-
-  addChatTyping = (data) ->
-    data.typing = true
-    data.message = 'is typing'
-    addChatMessage(data)
-
-  removeChatTyping = (data) ->
-
-    getTypingMessages(data).fadeOut(-> $(@).remove())
-
-  addMessageElement = (el, options) ->
-    $el = $(el)
-
-    # default options
-    options = {} unless options?
-    options.fade = true unless options.fade?
-    options.prepend = false unless options.prepend?
-
-    $el.hide().fadeIn(FADE_TIME) if options.fade
-    if options.prepend then $messages.prepend($el) else $messages.append($el)
-
-    $messages[0].scrollTop = $messages[0].scrollHeight
-
-  # screw markup
-  cleanInput = (input) ->
-    $('<div>').text(input).text()
-
-  updateTyping = ->
-    if connected
-      if !typing
-        typing = true
-        socket.emit 'typing'
-      lastTypingTime = (new Date()).getTime()
-
-      callback = ->
-        typingTimer = (new Date()).getTime()
-        timeDiff = typingTimer - lastTypingTime
-        if timeDiff >= TYPING_TIMER && typing
-          socket.emit 'stop typing'
-          typing = false
-
-      setTimeout(callback, TYPING_TIMER)
-
-  getTypingMessages = (data) ->
-    $('.typing.message').filter (i) ->
-      $(this).data('username') == data.username
-
-  getUsernameColor = (username) ->
-    hash = 7
-
-    for letter, i in username
-      hash = username.charCodeAt(i) + ( hash << 5) - hash
-
-    index = Math.abs(hash % COLORS.length)
-    COLORS[index]
-
-  $window.on 'keydown', (event) ->
-
-    if event.ctrlKey || event.metaKey || event.altKey
-      $currentInput.focus()
-
-    if event.which == 13
-      if(username)
-        sendMessage()
-        socket.emit 'stop typing'
-        typing = false
-      else
-        setUsername()
-
-  $inputMessage.on 'input', ->
-    updateTyping()
-
-  $loginPage.on 'click', ->
-    $currentInput.focus()
-
-  $inputMessage.on 'click', ->
-    $inputMessage.focus()
-
-  # socket events
-
-  socket.on 'name taken', ->
-    username = null
-    $('<div>').addClass('error').text('Name already taken bro.').prependTo('.form')
-
-  socket.on 'login', (data) ->
-    login()
-    connected = true
-    message = 'Welcome to Coffeechat! '
-    log message, { prepend: true }
-    addParticipantsMessage(data)
-
-  socket.on 'new message', (data) ->
-    addChatMessage(data)
-
-  socket.on 'user joined', (data) ->
-    log "#{data.username} joined"
-    addParticipantsMessage(data)
-
-  socket.on 'user left', (data) ->
-    log "#{data.username} left"
-    addParticipantsMessage(data)
-    removeChatTyping(data)
-
-  socket.on 'typing', (data) ->
-    addChatTyping(data)
-
-  socket.on 'stop typing', (data) ->
-    removeChatTyping(data)
+@App = App

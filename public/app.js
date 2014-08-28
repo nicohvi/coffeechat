@@ -1,206 +1,101 @@
 (function() {
-  $(function() {
-    var $chatPage, $currentInput, $inputMessage, $loginPage, $messages, $usernameInput, $window, COLORS, FADE_TIME, TYPING_TIMER, addChatMessage, addChatTyping, addMessageElement, addParticipantsMessage, cleanInput, connected, getTypingMessages, getUsernameColor, lastTypingTime, log, login, removeChatTyping, sendMessage, setUsername, socket, typing, updateTyping, username;
-    TYPING_TIMER = 400;
-    FADE_TIME = 150;
-    COLORS = ['#e21400', '#91580f', '#f8a700', '#f78b00', '#58dc00', '#287b00', '#a8f07a', '#4ae8c4', '#3b88eb', '#3824aa', '#a700ff', '#d300e7'];
-    $window = $(window);
-    $usernameInput = $('.usernameInput');
-    $messages = $('.messages');
-    $inputMessage = $('.inputMessage');
-    $loginPage = $('.login.page');
-    $chatPage = $('.chat.page');
-    username = null;
-    lastTypingTime = null;
-    connected = false;
-    typing = false;
-    $currentInput = $usernameInput.focus();
-    socket = io();
-    addParticipantsMessage = function(data) {
-      var message;
-      message = '';
-      if (data.numUsers === 1) {
-        message += "there's 1 participant";
-      } else {
-        message += "there are " + data.numUsers + " participants.";
-      }
-      return log(message);
-    };
-    setUsername = function() {
-      username = cleanInput($usernameInput.val().trim());
-      if (username.length > 0) {
-        return socket.emit('add user', username);
-      }
-    };
-    login = function() {
-      $loginPage.fadeOut();
-      $chatPage.show();
-      $loginPage.off('click');
-      return $currentInput = $inputMessage.focus();
-    };
-    sendMessage = function() {
-      var message;
-      message = $inputMessage.val();
-      message = cleanInput(message);
-      if (message && connected) {
-        $inputMessage.val('');
-        addChatMessage({
-          username: username,
-          message: message
-        });
-      }
-      return socket.emit('new message', message);
-    };
-    log = function(message, options) {
-      var $el;
-      $el = $('<li>').addClass('log').text(message);
-      return addMessageElement($el, options);
-    };
-    addChatMessage = function(data, options) {
-      var $messageBodySpan, $messageLi, $typingMessages, $usernameSpan, typingClass;
-      $typingMessages = getTypingMessages(data);
-      if (options == null) {
-        options = {};
-      }
-      if ($typingMessages.length !== 0) {
-        options.fade = false;
-        $typingMessages.remove();
-      }
-      $usernameSpan = $('<span>').addClass('username').text(data.username).css('color', getUsernameColor(data.username));
-      $messageBodySpan = $('<span>').addClass('messageBody').text(data.message);
-      if (data.typing != null) {
-        typingClass = 'typing';
-      } else {
-        typingClass = '';
-      }
-      $messageLi = $('<li>').addClass("message " + typingClass).data('username', data.username).append($usernameSpan, $messageBodySpan);
-      return addMessageElement($messageLi, options);
-    };
-    addChatTyping = function(data) {
-      data.typing = true;
-      data.message = 'is typing';
-      return addChatMessage(data);
-    };
-    removeChatTyping = function(data) {
-      return getTypingMessages(data).fadeOut(function() {
-        return $(this).remove();
-      });
-    };
-    addMessageElement = function(el, options) {
-      var $el;
-      $el = $(el);
-      if (options == null) {
-        options = {};
-      }
-      if (options.fade == null) {
-        options.fade = true;
-      }
-      if (options.prepend == null) {
-        options.prepend = false;
-      }
-      if (options.fade) {
-        $el.hide().fadeIn(FADE_TIME);
-      }
-      if (options.prepend) {
-        $messages.prepend($el);
-      } else {
-        $messages.append($el);
-      }
-      return $messages[0].scrollTop = $messages[0].scrollHeight;
-    };
-    cleanInput = function(input) {
-      return $('<div>').text(input).text();
-    };
-    updateTyping = function() {
-      var callback;
-      if (connected) {
-        if (!typing) {
-          typing = true;
-          socket.emit('typing');
-        }
-        lastTypingTime = (new Date()).getTime();
-        callback = function() {
-          var timeDiff, typingTimer;
-          typingTimer = (new Date()).getTime();
-          timeDiff = typingTimer - lastTypingTime;
-          if (timeDiff >= TYPING_TIMER && typing) {
-            socket.emit('stop typing');
-            return typing = false;
-          }
+  var App;
+
+  App = (function() {
+    function App() {
+      this.loginPage = new LoginPage($('.login.page'));
+      this.socket = io();
+      this.chat = new Chat($('.chat.page'));
+      this.window = $(window);
+      this.initHandlers();
+      this.initSocketbindings();
+      this.initBindings();
+    }
+
+    App.prototype.initHandlers = function() {
+      this.loginPage.on('username', (function(_this) {
+        return function(username) {
+          return _this.socket.emit('add user', username);
         };
-        return setTimeout(callback, TYPING_TIMER);
-      }
+      })(this));
+      this.chat.on('new message', (function(_this) {
+        return function(message) {
+          return _this.socket.emit('new message', message);
+        };
+      })(this));
+      this.chat.on('typing', (function(_this) {
+        return function() {
+          return _this.socket.emit('typing');
+        };
+      })(this));
+      return this.chat.on('stop typing', (function(_this) {
+        return function() {
+          return _this.socket.emit('stop typing');
+        };
+      })(this));
     };
-    getTypingMessages = function(data) {
-      return $('.typing.message').filter(function(i) {
-        return $(this).data('username') === data.username;
-      });
+
+    App.prototype.initSocketbindings = function() {
+      this.socket.on('name taken', (function(_this) {
+        return function() {
+          var message;
+          message = 'Name already taken, bro.';
+          return _this.loginPage.handleError(message);
+        };
+      })(this));
+      this.socket.on('login', (function(_this) {
+        return function(data) {
+          _this.loginPage.close();
+          _this.loginPage = null;
+          return _this.chat.trigger('welcome', [data]);
+        };
+      })(this));
+      this.socket.on('user joined', (function(_this) {
+        return function(data) {
+          return _this.chat.trigger('user joined', [data]);
+        };
+      })(this));
+      this.socket.on('new message', (function(_this) {
+        return function(data) {
+          return _this.chat.trigger('message', [data]);
+        };
+      })(this));
+      this.socket.on('user left', (function(_this) {
+        return function(data) {
+          return _this.chat.trigger('user left', [data]);
+        };
+      })(this));
+      this.socket.on('typing', (function(_this) {
+        return function(data) {
+          console.log("called");
+          return _this.chat.trigger('typing_message', [data.username]);
+        };
+      })(this));
+      return this.socket.on('stop typing', (function(_this) {
+        return function(data) {
+          return _this.chat.trigger('remove_typing_message', [data.username]);
+        };
+      })(this));
     };
-    getUsernameColor = function(username) {
-      var hash, i, index, letter, _i, _len;
-      hash = 7;
-      for (i = _i = 0, _len = username.length; _i < _len; i = ++_i) {
-        letter = username[i];
-        hash = username.charCodeAt(i) + (hash << 5) - hash;
-      }
-      index = Math.abs(hash % COLORS.length);
-      return COLORS[index];
+
+    App.prototype.initBindings = function() {
+      return this.window.on('keydown', (function(_this) {
+        return function(event) {
+          var target;
+          if (_this.loginPage != null) {
+            target = _this.loginPage;
+          } else {
+            target = _this.chat;
+          }
+          return target.trigger('keydown', [event]);
+        };
+      })(this));
     };
-    $window.on('keydown', function(event) {
-      if (event.ctrlKey || event.metaKey || event.altKey) {
-        $currentInput.focus();
-      }
-      if (event.which === 13) {
-        if (username) {
-          sendMessage();
-          socket.emit('stop typing');
-          return typing = false;
-        } else {
-          return setUsername();
-        }
-      }
-    });
-    $inputMessage.on('input', function() {
-      return updateTyping();
-    });
-    $loginPage.on('click', function() {
-      return $currentInput.focus();
-    });
-    $inputMessage.on('click', function() {
-      return $inputMessage.focus();
-    });
-    socket.on('name taken', function() {
-      username = null;
-      return $('<div>').addClass('error').text('Name already taken bro.').prependTo('.form');
-    });
-    socket.on('login', function(data) {
-      var message;
-      login();
-      connected = true;
-      message = 'Welcome to Coffeechat! ';
-      log(message, {
-        prepend: true
-      });
-      return addParticipantsMessage(data);
-    });
-    socket.on('new message', function(data) {
-      return addChatMessage(data);
-    });
-    socket.on('user joined', function(data) {
-      log("" + data.username + " joined");
-      return addParticipantsMessage(data);
-    });
-    socket.on('user left', function(data) {
-      log("" + data.username + " left");
-      addParticipantsMessage(data);
-      return removeChatTyping(data);
-    });
-    socket.on('typing', function(data) {
-      return addChatTyping(data);
-    });
-    return socket.on('stop typing', function(data) {
-      return removeChatTyping(data);
-    });
-  });
+
+    return App;
+
+  })();
+
+  this.App = App;
 
 }).call(this);

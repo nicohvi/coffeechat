@@ -21,6 +21,7 @@ exports.listen = (server) =>
       guest = false
 
       socket.emit 'login',
+        username: socket.username
         numUsers: numUsers
 
       socket.broadcast.emit 'user joined',
