@@ -16,7 +16,14 @@
     "socket.io-client": "1.0.6"
   },
   "enigines": {
-   "node": "0.10.31",
-   "npm": "1.2.x"
+    "node": "0.10.31",
+    "npm": "1.2.x"
+  },
+  "subdomain": "coffeechat",
+  "scripts": {
+    "start": "coffee app.coffee"
+  },
+  "engines": {
+    "node": "0.10.x"
   }
 }
