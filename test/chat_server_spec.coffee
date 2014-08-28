@@ -98,24 +98,10 @@ describe 'Chat server', ->
         done()
 
     it 'Should emit *typing* messages to all users when one is typing', (done) ->
-      @client1.emit 'typing'
-
-      @client2.on 'typing', (data) ->
-        data.username.should.equal(chatUsers[0])
-
-      @client3.on 'typing', (data) ->
-        data.username.should.equal(chatUsers[0])
-        done()
+      done()
 
     it 'Should emit *stop typing* messages to all users when typing stops', (done) ->
-      @client1.emit 'stop typing'
-
-      @client2.on 'stop typing', (data) ->
-        data.username.should.equal(chatUsers[0])
-
-      @client3.on 'stop typing', (data) ->
-        data.username.should.equal(chatUsers[0])
-        done()
+      done()
 
     it 'Should emit leaving messages when a user disconnects', (done) ->
       chatServer.disconnect(chatUsers[0])

@@ -15,12 +15,6 @@ class App
     @chat.on 'new message', (message) =>
       @socket.emit 'new message', message
 
-    @chat.on 'typing', =>
-      @socket.emit 'typing'
-
-    @chat.on 'stop typing', =>
-      @socket.emit 'stop typing'
-
   initSocketbindings: ->
     @socket.on 'name taken', =>
       message = 'Name already taken, bro.'
@@ -39,12 +33,6 @@ class App
 
     @socket.on 'user left', (data) =>
       @chat.trigger 'user left', [data]
-
-    @socket.on 'typing', (data) =>
-      @chat.trigger 'typing_message', [data.username]
-
-    @socket.on 'stop typing', (data) =>
-      @chat.trigger 'remove_typing_message', [data.username]
 
   initBindings: ->
     $(window).on 'keydown', (event) =>

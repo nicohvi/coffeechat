@@ -28,14 +28,6 @@ exports.listen = (server) =>
         username: socket.username
         numUsers: numUsers
 
-    socket.on 'typing', ->
-      socket.broadcast.emit 'typing',
-        username: socket.username
-
-    socket.on 'stop typing', ->
-      socket.broadcast.emit 'stop typing',
-        username: socket.username
-
     socket.on 'disconnect', =>
       unless guest
         delete usernames[socket.username]

@@ -42,12 +42,6 @@ class Chat extends EventEmitter
       @addParticipantsMessage(data.numUsers)
       @removeTypingMessage(data.username)
 
-    @.on 'typing_message', (username) =>
-      @addTypingMessage(username)
-
-    @.on 'remove_typing_message', (username) =>
-      @removeTypingMessage(username)
-
   initBindings: ->
     @inputMessage.on 'input', =>
       @updateTyping()
