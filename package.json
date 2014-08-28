@@ -2,7 +2,6 @@
   "name": "coffeechat",
   "version": "0.0.0",
   "description": "A lovely example of magic. Also coffeescript.",
-  "main": "src/app.coffee",
   "author": "Nicolay Hvidsten",
   "private": true,
   "license": "MIT",
