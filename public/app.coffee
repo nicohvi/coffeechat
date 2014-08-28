@@ -177,4 +177,4 @@ $ ->
   socket.on 'user left', (data) ->
     log("#{data.username} has made like Elvis.")
     addParticipantsMessage(data)
-    removeChatTyping(data)
+    removeTypingMessage(data)

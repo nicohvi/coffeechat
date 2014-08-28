@@ -41,6 +41,7 @@ exports.listen = (server) ->
         username: socket.username
 
     socket.on 'disconnect', ->
+      console.log "username: #{socket.username}"
       unless guest
         delete users[socket.username]
 
@@ -54,6 +55,7 @@ exports.numUsers = numUsers = ->
   Object.keys(users).length
 
 exports.disconnect = (username=null) ->
+
   if username?
     user = users[username]
     user.socket.disconnect() if user?
