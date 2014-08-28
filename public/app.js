@@ -58,6 +58,9 @@
     };
     addChatMessage = function(data, options) {
       var $messageBodySpan, $messageLi, $typingMessages, $usernameSpan, typingClass;
+      if (data.username == null) {
+        return;
+      }
       $typingMessages = getTypingMessages(data);
       if (options == null) {
         options = {};

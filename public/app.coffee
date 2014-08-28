@@ -61,6 +61,7 @@ $ ->
     addMessageElement($el, options)
 
   addChatMessage = (data, options) ->
+    return unless data.username? # something has gone horribly wrong.
     $typingMessages = getTypingMessages(data)
     options = { } unless options?
     if $typingMessages.length != 0
