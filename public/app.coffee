@@ -174,7 +174,7 @@ $ ->
   socket.on 'stop typing', (data) ->
     removeTypingMessage(data)
 
-  socket.on 'user left', (data) ->
-    log("#{data.username} has made like Elvis.")
+  # socket.on 'user left', (data) ->
+    # log("#{data.username} has made like Elvis.")
     # addParticipantsMessage(data)
     # removeTypingMessage(data)

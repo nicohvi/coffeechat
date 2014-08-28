@@ -15,7 +15,7 @@ exports.listen = (server) ->
           numUsers: numUsers()
 
       socket.username = username
-      users[username] = username # weird
+      users[username] = username
 
       guest = false
       socket.emit 'login',
@@ -41,7 +41,6 @@ exports.listen = (server) ->
 
     socket.on 'disconnect', ->
       console.log "called with username: #{socket.username}"
-      console.log util.inspect(users)
       unless guest
         delete users[socket.username]
 
