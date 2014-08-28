@@ -1,5 +1,5 @@
 express = require 'express'
-app = express()
+app = express()#
 server = require('http').Server(app)
 chat_server = require './lib/chat_server'
 port = process.env.PORT || 3000

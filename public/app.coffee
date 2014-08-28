@@ -6,7 +6,7 @@ class App
     @chat = new Chat($('.chat.page'))
     @initHandlers()
     @initSocketbindings()
-    @initBindings()
+    @initBindings() #
 
   initHandlers: ->
     @loginPage.on 'username', (username) =>

@@ -11,12 +11,13 @@
     "coffee-script": "1.8.0"
   },
   "devDependencies": {
+    "grunt": "0.4.5",
+    "grunt-contrib-coffee": "0.11.1",
+    "grunt-contrib-watch": "0.6.1",
+    "grunt-mocha-test": "^0.11.0",
     "mocha": "1.21.4",
     "should": "4.0.4",
-    "socket.io-client": "1.0.6",
-    "grunt": "0.4.5",
-    "grunt-contrib-watch": "0.6.1",
-    "grunt-contrib-coffee": "0.11.1"
+    "socket.io-client": "1.0.6"
   },
   "enigines": {
     "node": "0.10.31",
