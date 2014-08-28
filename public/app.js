@@ -1,6 +1,6 @@
 (function() {
   $(function() {
-    var $chatPage, $currentInput, $inputMessage, $loginPage, $messages, $usernameInput, $window, COLORS, FADE_TIME, TYPING_TIMER, addChatMessage, addChatTyping, addMessageElement, addParticipantsMessage, cleanInput, connected, getTypingMessages, getUsernameColor, lastTypingTime, log, removeChatTyping, sendMessage, setUsername, socket, typing, updateTyping, username;
+    var $chatPage, $currentInput, $inputMessage, $loginPage, $messages, $usernameInput, $window, COLORS, FADE_TIME, TYPING_TIMER, addChatMessage, addChatTyping, addMessageElement, addParticipantsMessage, cleanInput, connected, getTypingMessages, getUsernameColor, lastTypingTime, log, login, removeChatTyping, sendMessage, setUsername, socket, typing, updateTyping, username;
     TYPING_TIMER = 400;
     FADE_TIME = 150;
     COLORS = ['#e21400', '#91580f', '#f8a700', '#f78b00', '#58dc00', '#287b00', '#a8f07a', '#4ae8c4', '#3b88eb', '#3824aa', '#a700ff', '#d300e7'];
@@ -28,13 +28,15 @@
     };
     setUsername = function() {
       username = cleanInput($usernameInput.val().trim());
-      if (username) {
-        $loginPage.fadeOut();
-        $chatPage.show();
-        $loginPage.off('click');
-        $currentInput = $inputMessage.focus();
+      if (username.length > 0) {
         return socket.emit('add user', username);
       }
+    };
+    login = function() {
+      $loginPage.fadeOut();
+      $chatPage.show();
+      $loginPage.off('click');
+      return $currentInput = $inputMessage.focus();
     };
     sendMessage = function() {
       var message;
@@ -71,7 +73,6 @@
       } else {
         typingClass = '';
       }
-      console.log(typingClass);
       $messageLi = $('<li>').addClass("message " + typingClass).data('username', data.username).append($usernameSpan, $messageBodySpan);
       return addMessageElement($messageLi, options);
     };
@@ -168,8 +169,13 @@
     $inputMessage.on('click', function() {
       return $inputMessage.focus();
     });
+    socket.on('name taken', function() {
+      username = null;
+      return $('<div>').addClass('error').text('Name already taken bro.').prependTo('.form');
+    });
     socket.on('login', function(data) {
       var message;
+      login();
       connected = true;
       message = 'Welcome to Coffeechat! ';
       log(message, {

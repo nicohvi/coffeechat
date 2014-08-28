@@ -36,14 +36,13 @@ $ ->
 
   setUsername = ->
     username = cleanInput($usernameInput.val().trim())
+    socket.emit 'add user', username if username.length > 0
 
-    if(username)
-      $loginPage.fadeOut()
-      $chatPage.show()
-      $loginPage.off('click')
-      $currentInput = $inputMessage.focus()
-
-      socket.emit 'add user', username
+  login = ->
+    $loginPage.fadeOut()
+    $chatPage.show()
+    $loginPage.off('click')
+    $currentInput = $inputMessage.focus()
 
   sendMessage = ->
     message = $inputMessage.val()
@@ -75,7 +74,6 @@ $ ->
 
     $messageBodySpan = $('<span>').addClass('messageBody').text(data.message)
     if data.typing? then typingClass = 'typing' else typingClass = ''
-    console.log typingClass
     $messageLi = $('<li>')
                 .addClass("message #{typingClass}")
                 .data('username', data.username)
@@ -160,7 +158,14 @@ $ ->
   $inputMessage.on 'click', ->
     $inputMessage.focus()
 
+  # socket events
+
+  socket.on 'name taken', ->
+    username = null
+    $('<div>').addClass('error').text('Name already taken bro.').prependTo('.form')
+
   socket.on 'login', (data) ->
+    login()
     connected = true
     message = 'Welcome to Coffeechat! '
     log message, { prepend: true }

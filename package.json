@@ -13,7 +13,10 @@
   "devDependencies": {
     "mocha": "1.21.4",
     "should": "4.0.4",
-    "socket.io-client": "1.0.6"
+    "socket.io-client": "1.0.6",
+    "grunt": "0.4.5",
+    "grunt-contrib-watch": "0.6.1",
+    "grunt-contrib-coffee": "0.11.1"
   },
   "enigines": {
     "node": "0.10.31",
@@ -22,8 +25,5 @@
   "subdomain": "coffeechat",
   "scripts": {
     "start": "coffee app.coffee"
-  },
-  "engines": {
-    "node": "0.10.x"
   }
 }

@@ -35,7 +35,6 @@ describe 'Chat server', ->
         client1.emit 'add user', chatUsers[0]
 
       client1.on 'login', (data) ->
-        data.username.should.equal(chatUsers[0])
         data.numUsers.should.equal(1)
         done()
 
@@ -51,8 +50,7 @@ describe 'Chat server', ->
           client2.on 'connect', (data) ->
             client2.emit 'add user', chatUsers[0]
 
-          client2.on 'used name', (data) ->
-            data.username.should.equal(chatUsers[0])
+          client2.on 'name taken', (data) ->
             done()
 
     it 'Should inform already registered users that a new user has joined', (done) ->

@@ -1,34 +1,31 @@
 usernames = {}
 numUsers = 0
-chatServer = null
+util = require 'util'
 
-exports.listen = (server) ->
-  chatServer = io = require('socket.io')(server)
+exports.listen = (server) =>
+  @io = require('socket.io')(server)
 
-  io.on 'connection', (socket) ->
+  @io.on 'connection', (socket) ->
     guest = true
 
-    socket.on 'add user', (username) ->
-      return socket.emit 'used name' if usernames[username]?
+    socket.on 'new message', (data) ->
+      socket.broadcast.emit 'new message',
+        username: socket.username
+        message: data
 
+    socket.on 'add user', (username) ->
+      return socket.emit 'name taken' if usernames[username]?
       socket.username = username
       usernames[username] = username
       ++numUsers
-
       guest = false
+
       socket.emit 'login',
-        username: username
-        numUsers: nullmUsers
+        numUsers: numUsers
 
       socket.broadcast.emit 'user joined',
         username: socket.username
         numUsers: numUsers
-
-    socket.on 'new message', (message) ->
-      socket.broadcast.emit 'new message',
-        username: socket.username
-        message: message
-
 
     socket.on 'typing', ->
       socket.broadcast.emit 'typing',
@@ -38,8 +35,7 @@ exports.listen = (server) ->
       socket.broadcast.emit 'stop typing',
         username: socket.username
 
-    socket.on 'disconnect', ->
-      console.log "disconnect called #{socket.username}"
+    socket.on 'disconnect', =>
       unless guest
         delete usernames[socket.username]
         --numUsers
@@ -48,4 +44,12 @@ exports.listen = (server) ->
           username: socket.username
           numUsers: numUsers
 
-exports.usernames = usernames
+
+# export methods used in tests
+
+exports.disconnect = (username) =>
+  for id,socket of @io.sockets.connected
+    if socket.username == username
+      socket.disconnect()
+      delete usernames[socket.username]
+      --numUsers
