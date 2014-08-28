@@ -6,7 +6,6 @@
       this.loginPage = new LoginPage($('.login.page'));
       this.socket = io();
       this.chat = new Chat($('.chat.page'));
-      this.window = $(window);
       this.initHandlers();
       this.initSocketbindings();
       this.initBindings();
@@ -67,7 +66,6 @@
       })(this));
       this.socket.on('typing', (function(_this) {
         return function(data) {
-          console.log("called");
           return _this.chat.trigger('typing_message', [data.username]);
         };
       })(this));
@@ -79,7 +77,7 @@
     };
 
     App.prototype.initBindings = function() {
-      return this.window.on('keydown', (function(_this) {
+      return $(window).on('keydown', (function(_this) {
         return function(event) {
           var target;
           if (_this.loginPage != null) {

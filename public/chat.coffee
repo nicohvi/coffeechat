@@ -1,7 +1,6 @@
 class Chat extends EventEmitter
 
   constructor: (@el) ->
-    console.log 'w0t'
     @FADE_TIME = 150 # ms
     @TYPING_TIMER = 400 # ms
     @COLORS = [

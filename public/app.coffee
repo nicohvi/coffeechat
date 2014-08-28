@@ -4,13 +4,11 @@ class App
     @loginPage = new LoginPage($('.login.page'))
     @socket = io()
     @chat = new Chat($('.chat.page'))
-    @window = $(window)
     @initHandlers()
     @initSocketbindings()
     @initBindings()
 
   initHandlers: ->
-
     @loginPage.on 'username', (username) =>
       @socket.emit 'add user', username
 
@@ -43,14 +41,13 @@ class App
       @chat.trigger 'user left', [data]
 
     @socket.on 'typing', (data) =>
-      console.log "called"
       @chat.trigger 'typing_message', [data.username]
 
     @socket.on 'stop typing', (data) =>
       @chat.trigger 'remove_typing_message', [data.username]
 
   initBindings: ->
-    @window.on 'keydown', (event) =>
+    $(window).on 'keydown', (event) =>
       if @loginPage? then target = @loginPage else target = @chat
       target.trigger 'keydown', [event]
 
