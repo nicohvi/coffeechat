@@ -15,8 +15,7 @@ exports.listen = (server) ->
           numUsers: numUsers()
 
       socket.username = username
-      users[username] =
-        socket: socket
+      users[username] = username # weird
 
       guest = false
       socket.emit 'login',
