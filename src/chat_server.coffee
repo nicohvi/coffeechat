@@ -42,6 +42,7 @@ exports.listen = (server) ->
 
     socket.on 'disconnect', ->
       console.log "called with username: #{socket.username}"
+      console.log util.inspect(users)
       unless guest
         delete users[socket.username]
 
